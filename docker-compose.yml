@@ -1,0 +1,68 @@
+version: "3.8"
+
+# Shared SQLite DB path — backend + Celery workers must see the same file.
+volumes:
+  surakshapay_data:
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    # Loads Razorpay, SMS (Twilio/Fast2SMS), API keys, etc. Copy backend/env.example → backend/.env
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=sqlite:////app/data/surakshapay.db
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOW_MOCKS=true
+    volumes:
+      - surakshapay_data:/app/data
+    depends_on:
+      - redis
+
+  celery-worker:
+    build:
+      context: ./backend
+    command: celery -A app.worker:celery_app worker --loglevel=info
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=sqlite:////app/data/surakshapay.db
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOW_MOCKS=true
+    volumes:
+      - surakshapay_data:/app/data
+    depends_on:
+      - redis
+      - backend
+
+  celery-beat:
+    build:
+      context: ./backend
+    command: celery -A app.worker:celery_app beat --loglevel=info
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=sqlite:////app/data/surakshapay.db
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOW_MOCKS=true
+    volumes:
+      - surakshapay_data:/app/data
+    depends_on:
+      - redis
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

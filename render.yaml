@@ -1,0 +1,19 @@
+# Render Blueprint — adjust branch/root and add env vars in the Render dashboard.
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: surakshapay-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ALLOW_MOCKS
+        value: "true"

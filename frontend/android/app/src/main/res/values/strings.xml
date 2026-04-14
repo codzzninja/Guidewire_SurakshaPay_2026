@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SurakshaPay</string>
+    <string name="title_activity_main">SurakshaPay</string>
+    <string name="package_name">com.devtrails.surakshapay</string>
+    <string name="custom_url_scheme">com.devtrails.surakshapay</string>
+</resources>

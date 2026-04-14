@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
+from app.services.environment_cache import get_or_refresh_env_rss
 from app.models.policy import Policy, PolicyStatus
 from app.models.user import User
 from app.schemas.policy import PlanQuoteIn
@@ -102,6 +103,11 @@ def simulate_upi_payout(
     user: User = Depends(get_current_user),
 ):
     """Manual UPI simulator API for demos/hackathons."""
+    if getattr(user, "kyc_status", "pending") != "verified":
+        raise HTTPException(
+            status_code=400,
+            detail="KYC required before payout simulation.",
+        )
     status, payout_ref = initiate_payout(
         body.upi_id.strip(),
         int(body.amount_paise),
@@ -418,6 +424,16 @@ async def stripe_create_premium_checkout(
     user: User = Depends(get_current_user),
 ):
     """Create Stripe Checkout for weekly premium payment."""
+    if not (user.consent_gps_location and user.consent_upi_account and user.consent_platform_activity):
+        raise HTTPException(
+            status_code=400,
+            detail="Consent required before premium purchase (GPS, UPI, platform activity).",
+        )
+    if getattr(user, "kyc_status", "pending") != "verified":
+        raise HTTPException(
+            status_code=400,
+            detail="KYC required before premium purchase. Complete identity verification on your profile.",
+        )
     if not _stripe_configured():
         raise HTTPException(
             status_code=503,
@@ -437,6 +453,32 @@ async def stripe_create_premium_checkout(
     )
     if existing_paid:
         raise HTTPException(status_code=400, detail="Weekly premium already paid for this week")
+
+    # IRDAI-style adverse-selection control: lock enrollment while high-risk trigger is already active.
+    if settings.enforce_lockout:
+        try:
+            env, rss, _ = await get_or_refresh_env_rss(db, user, force_refresh=False)
+            w = env.get("weather") or {}
+            a = env.get("aqi") or {}
+            lockout_active = any(
+                [
+                    bool(w.get("rain_trigger")),
+                    bool(w.get("heat_trigger")),
+                    bool(a.get("severe_pollution")),
+                    bool(rss.get("curfew_social")),
+                    bool(rss.get("traffic_zone_closure")),
+                ]
+            )
+            if lockout_active:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Enrollment lockout active during current disruption risk window. Try again after conditions normalize.",
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            # Do not block purchase if advisory data is temporarily unavailable.
+            pass
 
     q = await quote_plan(user, body.plan_type, db)
     quoted_amount_paise = int(round(float(q["final_weekly_premium"]) * 100))

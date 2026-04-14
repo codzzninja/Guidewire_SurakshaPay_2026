@@ -58,6 +58,8 @@ def patch_profile(
         user.lon = body.lon
 
     if body.gps_attestation is not None:
+        if not user.consent_gps_location:
+            raise HTTPException(400, "GPS consent required before saving location trace")
         raw = body.gps_attestation.model_dump()
         if not raw.get("captured_at"):
             raw["captured_at"] = datetime.now(timezone.utc).isoformat()

@@ -125,6 +125,8 @@ export default function DashboardPage() {
   >([]);
   const [workerInsights, setWorkerInsights] = useState<Record<string, unknown> | null>(null);
 
+  const kycOk = user?.kyc_status === "verified";
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -401,6 +403,14 @@ export default function DashboardPage() {
 
   async function subscribe() {
     if (!selected) return;
+    if (!kycOk) {
+      notify(
+        "",
+        "KYC is required before paying weekly premium. Re-register on a fresh account or add a KYC update API for legacy users.",
+        "error"
+      );
+      return;
+    }
     if (!stripeReady) {
       notify("", "Stripe is not configured right now.", "error");
       return;
@@ -421,6 +431,14 @@ export default function DashboardPage() {
   }
 
   async function runEvaluate(mock: boolean) {
+    if (!kycOk) {
+      notify(
+        "",
+        "KYC verification is required before claim payout simulation.",
+        "error"
+      );
+      return;
+    }
     setBusy(true);
     setEvalResult(null);
     setClaimPhase("Evaluating disruption...");
@@ -1234,7 +1252,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-2 mt-4">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !kycOk}
                 onClick={() => void runEvaluate(true)}
                 className="rounded-2xl bg-gradient-to-r from-brand to-brand2 shadow-glow text-white font-bold py-4 disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
@@ -1242,7 +1260,7 @@ export default function DashboardPage() {
               </button>
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !kycOk}
                 onClick={() => void runEvaluate(false)}
                 className="rounded-2xl bg-surface/50 border border-glass-border text-white font-bold py-4 disabled:opacity-50 hover:bg-surface/80 transition-all font-medium"
               >
@@ -1389,13 +1407,21 @@ export default function DashboardPage() {
               {!policy && (
                 <button
                   type="button"
-                  disabled={busy || !selected || !stripeReady || weeklyPremiumDue == null}
+                  disabled={
+                    busy || !selected || !stripeReady || weeklyPremiumDue == null || !kycOk
+                  }
                   onClick={subscribe}
                   className="mt-2 w-full rounded-lg bg-indigo-600 text-white text-sm font-semibold py-2.5 disabled:opacity-50"
                 >
                   Pay {formatRs(weeklyPremiumDue ?? 0)} weekly premium
                 </button>
               )}
+              {!policy && !kycOk ? (
+                <p className="text-[11px] text-amber-200/90 mt-2">
+                  KYC not verified on this account — complete registration with PAN/Aadhaar tail on a new
+                  user, or wire a profile KYC update.
+                </p>
+              ) : null}
             </div>
             <div className="max-h-56 overflow-y-auto space-y-2 mb-4 rounded-xl border border-glass-border bg-surface/30 p-3">
               {dailyRows.length === 0 ? (

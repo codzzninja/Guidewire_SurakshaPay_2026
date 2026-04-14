@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # --- Real integrations (Phase 2) ---
     # Set ALLOW_MOCKS=true only for local dev without API keys.
     allow_mocks: bool = False
+    # Compliance gates can be toggled for demos without changing code paths.
+    enforce_lockout: bool = False
+    enforce_min_active_days: bool = False
+    min_active_days_for_payout: int = 90
 
     openweather_api_key: str = ""
     waqi_api_token: str = ""

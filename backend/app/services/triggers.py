@@ -3,7 +3,7 @@ Parametric trigger evaluation — dual gate: external disruption + income drop.
 Uses real OpenWeather + WAQI + RSS when ALLOW_MOCKS=false (default).
 """
 
-from datetime import date
+from datetime import date, timedelta
 import json
 import uuid
 from typing import Any
@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.claim import Claim
+from app.models.earning_day import EarningDay
 from app.models.event import DisruptionEvent
 from app.models.policy import Policy, PolicyStatus
 from app.models.user import User
@@ -135,6 +136,37 @@ async def run_pipeline_for_user(
         "claim_created": False,
         "message": "",
     }
+
+    if not (user.consent_gps_location and user.consent_upi_account and user.consent_platform_activity):
+        result["message"] = "DPDP consent required (GPS, UPI, platform activity) before claim automation"
+        result["consent_required"] = True
+        return result
+
+    if getattr(user, "kyc_status", "pending") != "verified":
+        result["message"] = "KYC verification required before parametric payout"
+        result["kyc_required"] = True
+        return result
+
+    active_days = (
+        db.query(EarningDay)
+        .filter(
+            EarningDay.user_id == user.id,
+            EarningDay.earn_date >= (date.today() - timedelta(days=365)),
+            EarningDay.minutes_online.isnot(None),
+            EarningDay.minutes_online > 0,
+        )
+        .count()
+    )
+    user.active_days_last_365 = int(active_days)
+    db.add(user)
+    db.flush()
+    # Social Security Code proxy gate: minimum engagement for payout eligibility.
+    if settings.enforce_min_active_days and active_days < settings.min_active_days_for_payout:
+        needed = settings.min_active_days_for_payout
+        result["message"] = f"Insufficient active workdays for payout eligibility ({active_days}/{needed})"
+        result["eligibility_active_days"] = active_days
+        result["min_required_active_days"] = needed
+        return result
 
     if not policy:
         result["message"] = "No paid active weekly policy — pay weekly premium first"

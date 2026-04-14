@@ -14,6 +14,11 @@ export default function RegisterPage() {
   const [zoneId, setZoneId] = useState(WORK_ZONES[0].id);
   const [upiId, setUpiId] = useState("");
   const [hours, setHours] = useState(8);
+  const [consentGps, setConsentGps] = useState(false);
+  const [consentUpi, setConsentUpi] = useState(false);
+  const [consentPlatform, setConsentPlatform] = useState(false);
+  const [kycIdType, setKycIdType] = useState<"pan" | "aadhaar">("pan");
+  const [kycLast4, setKycLast4] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -36,6 +41,12 @@ export default function RegisterPage() {
           avg_hours_per_day: hours,
           lat: selectedZone.lat,
           lon: selectedZone.lon,
+          consent_gps_location: consentGps,
+          consent_upi_account: consentUpi,
+          consent_platform_activity: consentPlatform,
+          kyc_id_type: kycIdType,
+          kyc_document_last4:
+            kycIdType === "pan" ? kycLast4.trim().toUpperCase() : kycLast4.trim(),
         }),
       });
       setToken(t.access_token);
@@ -188,6 +199,74 @@ export default function RegisterPage() {
                 onChange={(e) => setHours(Number(e.target.value))}
               />
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-glass-border/60 bg-surface/20 p-3 space-y-3">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              KYC (demo)
+            </p>
+            <p className="text-[10px] text-slate-500 leading-relaxed">
+              We store only the document type and last four characters. Replace with a regulated KYC
+              provider before production.
+            </p>
+            <div className="grid grid-cols-[1fr_2fr] gap-3">
+              <div>
+                <label htmlFor="reg-kyc-type" className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">
+                  ID type
+                </label>
+                <select
+                  id="reg-kyc-type"
+                  className="w-full rounded-xl border border-glass-border bg-surface text-ink px-3 py-2.5 outline-none focus:ring-2 focus:ring-brand/50 text-sm font-medium"
+                  value={kycIdType}
+                  onChange={(e) => setKycIdType(e.target.value as "pan" | "aadhaar")}
+                >
+                  <option value="pan">PAN</option>
+                  <option value="aadhaar">Aadhaar</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="reg-kyc-last4" className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Last 4 {kycIdType === "pan" ? "characters" : "digits"}
+                </label>
+                <input
+                  id="reg-kyc-last4"
+                  className="w-full rounded-xl border border-glass-border bg-surface/50 text-ink px-3 py-2.5 outline-none focus:ring-2 focus:ring-brand/50 font-mono text-sm tracking-widest"
+                  value={kycLast4}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setKycLast4(kycIdType === "pan" ? v.toUpperCase() : v.replace(/\D/g, "").slice(0, 4));
+                  }}
+                  required
+                  maxLength={4}
+                  minLength={4}
+                  inputMode={kycIdType === "pan" ? "text" : "numeric"}
+                  autoComplete="off"
+                  placeholder={kycIdType === "pan" ? "AB12" : "1234"}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-glass-border/60 bg-surface/20 p-3 space-y-2">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Data consent (DPDP)
+            </p>
+            <label className="flex items-start gap-2 text-xs text-slate-300">
+              <input type="checkbox" checked={consentGps} onChange={(e) => setConsentGps(e.target.checked)} />
+              GPS location for trigger-zone verification
+            </label>
+            <label className="flex items-start gap-2 text-xs text-slate-300">
+              <input type="checkbox" checked={consentUpi} onChange={(e) => setConsentUpi(e.target.checked)} />
+              UPI account details for payout disbursement simulation
+            </label>
+            <label className="flex items-start gap-2 text-xs text-slate-300">
+              <input
+                type="checkbox"
+                checked={consentPlatform}
+                onChange={(e) => setConsentPlatform(e.target.checked)}
+              />
+              Platform activity data for eligibility and fraud controls
+            </label>
           </div>
           
           {err ? (

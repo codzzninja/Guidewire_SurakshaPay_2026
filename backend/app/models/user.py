@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import String, Float, DateTime, Text, func
+from sqlalchemy import String, Float, DateTime, Text, Boolean, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -25,6 +25,19 @@ class User(Base):
     )
     # Last device GPS attestation (samples + MSTS features) — JSON string
     gps_attestation_json: Mapped[str] = mapped_column(Text, default="{}")
+    # DPDP-style explicit consent capture
+    consent_gps_location: Mapped[bool] = mapped_column(Boolean, default=False)
+    consent_upi_account: Mapped[bool] = mapped_column(Boolean, default=False)
+    consent_platform_activity: Mapped[bool] = mapped_column(Boolean, default=False)
+    consent_version: Mapped[str] = mapped_column(String(16), default="v1")
+    consent_captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Social Security-style engagement metric (single-platform proxy).
+    active_days_last_365: Mapped[int] = mapped_column(Integer, default=0)
+    # Demo KYC: document type + last 4 + verified flag (replace with PSP KYC in production).
+    kyc_id_type: Mapped[str] = mapped_column(String(16), default="pan")
+    kyc_document_last4: Mapped[str] = mapped_column(String(4), default="")
+    kyc_status: Mapped[str] = mapped_column(String(16), default="pending")
+    kyc_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     policies: Mapped[list["Policy"]] = relationship(back_populates="user")

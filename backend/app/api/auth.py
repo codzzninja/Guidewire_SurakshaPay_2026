@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -18,6 +20,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(body: RegisterIn, db: Session = Depends(get_db)):
     if db.query(User).filter(User.phone == body.phone).first():
         raise HTTPException(status_code=400, detail="Phone already registered")
+    if not (body.consent_gps_location and body.consent_upi_account and body.consent_platform_activity):
+        raise HTTPException(
+            status_code=400,
+            detail="Consent required: GPS location, UPI account, and platform activity data",
+        )
+    now = datetime.now(timezone.utc)
     u = User(
         phone=body.phone,
         hashed_password=hash_password(body.password),
@@ -28,6 +36,15 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         avg_hours_per_day=body.avg_hours_per_day,
         lat=body.lat,
         lon=body.lon,
+        consent_gps_location=body.consent_gps_location,
+        consent_upi_account=body.consent_upi_account,
+        consent_platform_activity=body.consent_platform_activity,
+        consent_captured_at=now,
+        active_days_last_365=0,
+        kyc_id_type=body.kyc_id_type,
+        kyc_document_last4=body.kyc_document_last4,
+        kyc_status="verified",
+        kyc_verified_at=now,
     )
     db.add(u)
     db.commit()

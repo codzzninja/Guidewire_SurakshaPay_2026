@@ -11,6 +11,15 @@ export type User = {
   /** Device GPS trace samples stored (MSTS / anti-spoofing) */
   gps_sample_count?: number;
   gps_captured_at?: string | null;
+  consent_gps_location?: boolean;
+  consent_upi_account?: boolean;
+  consent_platform_activity?: boolean;
+  active_days_last_365?: number;
+  /** Demo KYC: PAN or Aadhaar last four + verified flag from registration */
+  kyc_id_type?: string;
+  kyc_document_last4?: string;
+  kyc_status?: string;
+  kyc_verified_at?: string | null;
 };
 
 export type Policy = {

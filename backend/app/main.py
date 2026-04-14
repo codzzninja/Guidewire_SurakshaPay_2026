@@ -76,6 +76,13 @@ def integration_status():
         "stripe_webhook_configured": bool(settings.stripe_webhook_secret.strip()),
         "frontend_base_url": settings.frontend_base_url,
         "payout_provider": settings.payout_provider,
+        "compliance_controls": {
+            "dpdp_consent_required": True,
+            "kyc_required_for_premium_and_payout": True,
+            "adverse_selection_lockout_enabled": settings.enforce_lockout,
+            "min_active_days_enforced": settings.enforce_min_active_days,
+            "min_active_days_for_payout": settings.min_active_days_for_payout,
+        },
         "rss_url_configured": bool(settings.government_rss_url.strip()),
         "premium_model_file": model_path.exists(),
         "environment_cache_ttl_seconds": settings.environment_cache_ttl_seconds,

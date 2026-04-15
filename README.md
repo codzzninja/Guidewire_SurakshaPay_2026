@@ -76,6 +76,7 @@ Compose uses a **shared SQLite file** on a volume so **API + Celery** share one 
 | `GOVERNMENT_RSS_URL` | RSS for social/disruption-style flags |
 | `RAZORPAY_*` | Test orders / payouts; optional if `RAZORPAY_OPTIONAL=true` |
 | `ALLOW_MOCKS` | Dev mode without real integrations |
+| `DEMO_WEATHER_EDGE_CASE` | Enables demo weather mismatch injection for `POST /monitoring/evaluate` when `demo_weather_integrity_mismatch=true` |
 | `CORS_ORIGINS` | Allowed browser origins |
 | `ENVIRONMENT_CACHE_TTL_SECONDS` | DB snapshot TTL for env bundle (optional) |
 
@@ -112,6 +113,22 @@ Mounted in `backend/app/main.py`:
    - **Gate 1:** external disruption active. **Gate 2:** drop above threshold (e.g. 40%).
    - If both pass and there is an **active policy**, runs **fraud** (`fraud.evaluate_claim`), creates **`DisruptionEvent`** + **`Claim`**, may call **`payouts.initiate_payout`** (Razorpay order or simulated).
 
+### 2a) Weather fraud edge demo (standalone gate)
+
+1. Client calls **`POST /monitoring/evaluate`** with:
+   - `force_mock_disruption=false`
+   - `demo_weather_integrity_mismatch=true`
+2. Backend enables this path only when `DEMO_WEATHER_EDGE_CASE=true` or `ALLOW_MOCKS=true`.
+3. `triggers._apply_demo_weather_integrity_mismatch` injects a deterministic contradiction:
+   - `rain_trigger=true` while raw rain metrics stay low (`rain_mm_hour`, `forecast_rain_24h_mm`).
+4. Fraud behavior:
+   - Normal live and guaranteed-demo flows keep standard blended fraud scoring.
+   - When weather-edge injection is applied, `evaluate_claim(..., strict_weather_edge_demo=True)` activates a **standalone weather gate**:
+     - reject on weather flag-vs-metric mismatch, or
+     - reject when weather-history risk crosses threshold.
+   - This demo rejection is intentionally **not blended** with GPS/IsolationForest score.
+5. `force_mock_disruption=true` (Guaranteed demo) remains unchanged and still skips weather-integrity checks.
+
 ### 3) Scheduled jobs (Celery)
 
 From **`worker.py`** / **`tasks.py`**:
@@ -128,6 +145,18 @@ From **`worker.py`** / **`tasks.py`**:
 ### 5) Fraud
 
 - **`services/fraud.py`** — isolation-forest-style signals plus MSTS / geo / attestation checks. Outcome affects **claim status** and whether payout runs.
+
+### 6) Admin / insurer dashboard
+
+- Frontend route: **`/insurer`** (`frontend/src/pages/InsurerDashboardPage.tsx`)
+- Primary data source: **`GET /analytics/admin/summary`**
+- Main blocks shown in UI:
+  - **Portfolio:** workers, active policies, premium pool, paid payouts, claims by status, loss-ratio proxies.
+  - **Environment nowcast (24h):** worker-weighted weather rollups across top zones.
+  - **Predictive week-ahead disruption:** weather pressure + RSS overlay.
+  - **Zone Pressure Matrix:** zone risk tier, suggested premium delta %, illustrative expected new claim events.
+  - **Prediction center:** expected payout load, loss-cost-to-premium ratio, illustrative capital buffer, stress watchlist dates.
+- Auth note (current code): `_require_admin_token(...)` is bypassed for demo/testing, so the endpoint does not strictly enforce the admin token right now.
 
 ---
 

@@ -8,7 +8,7 @@ import feedparser
 
 from app.config import settings
 from app.services.errors import IntegrationError
-
+#parse feed sync
 
 def _parse_feed_sync(url: str) -> feedparser.FeedParserDict:
     return feedparser.parse(url)

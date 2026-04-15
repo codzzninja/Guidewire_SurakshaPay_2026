@@ -8,7 +8,7 @@ export type WorkZone = {
   lat: number;
   lon: number;
 };
-
+//work zones
 export const WORK_ZONES: WorkZone[] = [
   { id: "chennai-t-nagar", label: "Chennai — T. Nagar", lat: 13.0418, lon: 80.2341 },
   { id: "chennai-velachery", label: "Chennai — Velachery", lat: 12.9815, lon: 80.2209 },

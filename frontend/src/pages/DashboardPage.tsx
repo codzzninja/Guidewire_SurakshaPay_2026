@@ -430,7 +430,10 @@ export default function DashboardPage() {
     }
   }
 
-  async function runEvaluate(mock: boolean) {
+  async function runEvaluate(
+    mock: boolean,
+    opts?: { demoWeatherIntegrityMismatch?: boolean }
+  ) {
     if (!kycOk) {
       notify(
         "",
@@ -448,7 +451,10 @@ export default function DashboardPage() {
       await sleep(700);
       const r = await api<Record<string, unknown>>("/monitoring/evaluate", {
         method: "POST",
-        body: JSON.stringify({ force_mock_disruption: mock }),
+        body: JSON.stringify({
+          force_mock_disruption: mock,
+          demo_weather_integrity_mismatch: Boolean(opts?.demoWeatherIntegrityMismatch),
+        }),
       });
       await sleep(700);
       setClaimPhase("Processing payout via UPI simulator...");
@@ -1266,6 +1272,23 @@ export default function DashboardPage() {
               >
                 Run Live APIs Only
               </button>
+              <button
+                type="button"
+                disabled={busy || !kycOk}
+                onClick={() => void runEvaluate(false, { demoWeatherIntegrityMismatch: true })}
+                className="rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-100 font-semibold py-3 px-4 text-sm disabled:opacity-50 hover:bg-amber-950/60 transition-all"
+              >
+                Weather fraud edge (flag vs metrics)
+              </button>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Third button uses the <span className="text-slate-400">live</span> path and asks the API to inject
+                contradictory rain flags vs raw mm/h (needs{" "}
+                <code className="text-slate-400">DEMO_WEATHER_EDGE_CASE=true</code> or{" "}
+                <code className="text-slate-400">ALLOW_MOCKS=true</code>). When injected, a{" "}
+                <span className="text-slate-400">standalone weather-edge gate</span> runs: flag-vs-metrics or weak rain
+                vs history → <span className="text-slate-400">claim rejected</span> (not blended with the GPS/IF fraud
+                score). Guaranteed demo is unchanged.
+              </p>
             </div>
             {claimPhase && (
               <div className="mt-3 rounded-xl border border-cyan-300/30 bg-cyan-950/20 px-3 py-2">
@@ -1288,6 +1311,12 @@ export default function DashboardPage() {
             )}
             {evalResult && (
               <div className="mt-4 space-y-3">
+                {typeof evalResult.demo_weather_integrity_hint === "string" &&
+                  evalResult.demo_weather_integrity_hint.trim() !== "" && (
+                    <div className="rounded-xl border border-slate-500/40 bg-slate-900/40 px-3 py-2 text-[11px] text-slate-300">
+                      {evalResult.demo_weather_integrity_hint}
+                    </div>
+                  )}
                 {(evalResult.fraud_score != null ||
                   (typeof evalResult.fraud_notes === "string" && evalResult.fraud_notes.length > 0)) && (
                   <div className="rounded-2xl border border-amber-200/35 bg-amber-950/25 p-4">

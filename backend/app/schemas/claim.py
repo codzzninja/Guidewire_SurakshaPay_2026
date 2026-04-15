@@ -22,3 +22,6 @@ class ClaimOut(BaseModel):
 class TriggerSimulateIn(BaseModel):
     zone_id: str | None = None
     force_mock_disruption: bool = False
+    # Live path only: inject rain_trigger vs low metrics so fraud surfaces weather_integrity_risk.
+    # Requires DEMO_WEATHER_EDGE_CASE=true or ALLOW_MOCKS=true on the API.
+    demo_weather_integrity_mismatch: bool = False

@@ -292,6 +292,7 @@ def evaluate_claim(
     *,
     external_details: dict[str, Any] | None = None,
     force_mock_disruption: bool = False,
+    strict_weather_edge_demo: bool = False,
 ) -> FraudResult:
     notes: list[str] = []
     msts: dict[str, Any] = {}
@@ -319,8 +320,6 @@ def evaluate_claim(
         notes.append("High claim velocity — possible abuse pattern")
 
     w_integrity, w_meta = _weather_integrity_risk(external_details, force_mock_disruption)
-    if w_meta.get("rain_flag_metric_mismatch") or w_meta.get("heat_flag_metric_mismatch"):
-        notes.append("Weather API flags disagree with raw metrics — review")
 
     w_api = {}
     if isinstance(external_details, dict):
@@ -329,7 +328,42 @@ def evaluate_claim(
         w_api = {}
 
     hist_risk, hist_meta = _history_weather_risk(db, user.id, w_api, force_mock_disruption)
-    if hist_risk >= 0.25:
+
+    integrity_fail = bool(
+        w_meta.get("rain_flag_metric_mismatch") or w_meta.get("heat_flag_metric_mismatch")
+    )
+    history_fail = hist_risk >= 0.25
+
+    # Standalone gate: only when /evaluate requested demo_weather_integrity_mismatch and API injected it.
+    # Does not blend weather into IF/rule_score — hard block on integrity or history (same thresholds as notes).
+    if strict_weather_edge_demo and (integrity_fail or history_fail):
+        se_notes = [
+            "Weather edge demo — standalone gate (not blended with GPS/isolation-fraud score)."
+        ]
+        if integrity_fail:
+            se_notes.append("Weather flags conflict with raw metrics.")
+        if history_fail:
+            se_notes.append("Rain narrative weak vs rolling environmental history.")
+        msts_edge: dict[str, Any] = {
+            "layer": "weather_edge_gate",
+            "weather_integrity_risk": round(w_integrity, 4),
+            "weather_history_risk": round(hist_risk, 4),
+            **hist_meta,
+        }
+        if w_meta.get("rain_flag_metric_mismatch"):
+            msts_edge["rain_flag_metric_mismatch"] = True
+        if w_meta.get("heat_flag_metric_mismatch"):
+            msts_edge["heat_flag_metric_mismatch"] = True
+        return FraudResult(
+            score=0.94,
+            notes=" ".join(se_notes),
+            approved=False,
+            msts=msts_edge,
+        )
+
+    if integrity_fail:
+        notes.append("Weather API flags disagree with raw metrics — review")
+    if history_fail:
         notes.append("Rain narrative weak vs recent environmental history")
 
     beh_risk, beh_meta = _behavioral_risk_individual_vs_zone(db, user)

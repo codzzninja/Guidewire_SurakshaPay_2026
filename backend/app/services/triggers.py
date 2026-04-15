@@ -94,6 +94,29 @@ async def evaluate_external_triggers(lat: float, lon: float, force_mock: bool) -
     return live_payload_from_env_rss(env, rss)
 
 
+def _apply_demo_weather_integrity_mismatch(ext: dict[str, Any]) -> None:
+    """
+    Force rain_trigger=True while raw mm/h and 24h forecast stay below fraud thresholds
+    (_weather_metrics_imply_rain), so evaluate_claim surfaces weather_integrity_risk + notes.
+    Also ensures dual-gate external side is on (heavy_rain flag).
+    """
+    details = ext.setdefault("details", {})
+    base_w = details.get("weather_api") if isinstance(details.get("weather_api"), dict) else None
+    if base_w is None and isinstance(details.get("weather"), dict):
+        base_w = details["weather"]
+    w = dict(base_w) if isinstance(base_w, dict) else {}
+    w["rain_trigger"] = True
+    w["heat_trigger"] = False
+    w["rain_mm_hour"] = 1.0
+    w["forecast_rain_24h_mm"] = 12.0
+    w["max_temp_next_24h"] = 28.0
+    details["weather_api"] = w
+    details["demo_edge_injected"] = "weather_integrity_mismatch"
+    flags = ext.setdefault("flags", {})
+    flags["heavy_rain"] = True
+    ext["any_external"] = any(flags.values())
+
+
 def payout_formula(income_loss: float, max_per_event: float) -> float:
     return round(min(income_loss * 0.85, max_per_event), 2)
 
@@ -102,8 +125,22 @@ async def run_pipeline_for_user(
     db: Session,
     user: User,
     force_mock_disruption: bool = False,
+    demo_weather_integrity_mismatch: bool = False,
 ) -> dict[str, Any]:
     ext = await evaluate_external_triggers(user.lat, user.lon, force_mock_disruption)
+    demo_edge_meta: dict[str, Any] = {}
+    if demo_weather_integrity_mismatch:
+        if force_mock_disruption:
+            demo_edge_meta["demo_weather_integrity_hint"] = (
+                "Guaranteed mock skips weather integrity checks — use Run Live APIs with this option."
+            )
+        elif not (settings.allow_mocks or settings.demo_weather_edge_case):
+            demo_edge_meta["demo_weather_integrity_hint"] = (
+                "Set DEMO_WEATHER_EDGE_CASE=true or ALLOW_MOCKS=true on the API to enable the mismatch injection."
+            )
+        else:
+            _apply_demo_weather_integrity_mismatch(ext)
+            demo_edge_meta["demo_weather_integrity_applied"] = True
     baseline, baseline_meta = effective_daily_baseline(db, user)
     disruption_active = ext["any_external"]
     today_earn = simulate_today_earning(baseline, disruption_active)
@@ -124,6 +161,7 @@ async def run_pipeline_for_user(
     )
 
     result: dict[str, Any] = {
+        **demo_edge_meta,
         "user_id": user.id,
         "external": ext,
         "baseline_daily": round(baseline, 2),
@@ -203,6 +241,7 @@ async def run_pipeline_for_user(
         drop,
         external_details=ext.get("details") if isinstance(ext.get("details"), dict) else None,
         force_mock_disruption=force_mock_disruption,
+        strict_weather_edge_demo=bool(demo_edge_meta.get("demo_weather_integrity_applied")),
     )
     result["fraud_msts"] = fraud.msts
 

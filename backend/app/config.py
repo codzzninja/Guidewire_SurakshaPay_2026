@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     # --- Real integrations (Phase 2) ---
     # Set ALLOW_MOCKS=true only for local dev without API keys.
     allow_mocks: bool = False
+    # Hackathon/demo: allow POST /monitoring/evaluate demo_weather_integrity_mismatch without full ALLOW_MOCKS.
+    demo_weather_edge_case: bool = False
     # Compliance gates can be toggled for demos without changing code paths.
     enforce_lockout: bool = False
     enforce_min_active_days: bool = False

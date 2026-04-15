@@ -33,4 +33,9 @@ async def evaluate_self(
     user: User = Depends(get_current_user),
 ):
     """Run payout pipeline. Use force_mock_disruption=true for a guaranteed demo path."""
-    return await run_pipeline_for_user(db, user, force_mock_disruption=body.force_mock_disruption)
+    return await run_pipeline_for_user(
+        db,
+        user,
+        force_mock_disruption=body.force_mock_disruption,
+        demo_weather_integrity_mismatch=body.demo_weather_integrity_mismatch,
+    )

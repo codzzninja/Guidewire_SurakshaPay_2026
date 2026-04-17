@@ -18,26 +18,6 @@
 > - Any 3-digit CVC  
 > - Any ZIP/postal code
 
-## Repository layout
-
-| Area | Path | Role |
-|------|------|------|
-| Backend API | `backend/app/main.py` | FastAPI app, routers, CORS, `IntegrationError` → 503 |
-| API routes | `backend/app/api/` | `auth`, `users`, `policies`, `claims`, `monitoring`, `payments` |
-| Domain logic | `backend/app/services/` | Triggers, weather, cache, fraud, baseline, payouts, features, premium ML, RSS |
-| ORM models | `backend/app/models/` | User, Policy, Claim, events, earnings, environment snapshot, Razorpay rows |
-| Schemas | `backend/app/schemas/` | Pydantic request/response shapes |
-| Auth deps | `backend/app/deps.py` | JWT `get_current_user` |
-| Config | `backend/app/config.py` | Settings from env (`backend/.env`) |
-| DB | `backend/app/database.py` | Engine + `SessionLocal`; **SQLite** or **Postgres** via `DATABASE_URL` |
-| Celery | `backend/app/worker.py`, `backend/app/tasks.py` | Beat schedule + tasks |
-| ML assets | `backend/app/ml/` | `train_premium_model.py`, `premium_xgb.pkl` |
-| Zone registry | `backend/app/data/work_zones.py` | Work zones metadata |
-| Frontend | `frontend/src/` | Vite + React + Tailwind |
-| Compose | `docker-compose.yml` | `redis`, `backend`, `celery-worker`, `celery-beat`, `frontend` |
-
----
-
 ## How to run (local)
 
 ### Backend
@@ -75,6 +55,25 @@ Ensure the UI points at your API (see `frontend/src/lib/api.ts` for base URL / e
 
 
 Compose uses a **shared SQLite file** on a volume so **API + Celery** share one database (`DATABASE_URL=sqlite:////app/data/surakshapay.db`).
+
+---
+## Repository layout
+
+| Area | Path | Role |
+|------|------|------|
+| Backend API | `backend/app/main.py` | FastAPI app, routers, CORS, `IntegrationError` → 503 |
+| API routes | `backend/app/api/` | `auth`, `users`, `policies`, `claims`, `monitoring`, `payments` |
+| Domain logic | `backend/app/services/` | Triggers, weather, cache, fraud, baseline, payouts, features, premium ML, RSS |
+| ORM models | `backend/app/models/` | User, Policy, Claim, events, earnings, environment snapshot, Razorpay rows |
+| Schemas | `backend/app/schemas/` | Pydantic request/response shapes |
+| Auth deps | `backend/app/deps.py` | JWT `get_current_user` |
+| Config | `backend/app/config.py` | Settings from env (`backend/.env`) |
+| DB | `backend/app/database.py` | Engine + `SessionLocal`; **SQLite** or **Postgres** via `DATABASE_URL` |
+| Celery | `backend/app/worker.py`, `backend/app/tasks.py` | Beat schedule + tasks |
+| ML assets | `backend/app/ml/` | `train_premium_model.py`, `premium_xgb.pkl` |
+| Zone registry | `backend/app/data/work_zones.py` | Work zones metadata |
+| Frontend | `frontend/src/` | Vite + React + Tailwind |
+| Compose | `docker-compose.yml` | `redis`, `backend`, `celery-worker`, `celery-beat`, `frontend` |
 
 ---
 

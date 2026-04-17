@@ -4,6 +4,9 @@
 **SurakshaPay** is a gig-worker income-protection demo: **FastAPI** backend, **React (Vite)** frontend, **SQLAlchemy** DB, **Celery + Redis** for scheduled jobs, external **weather / AQI / RSS**, **XGBoost** for premium quoting, and a **parametric trigger pipeline** (dual-gate + fraud + Razorpay-style payout).
 
 ---
+## Pitch Deck
+
+[View Pitch Deck](https://drive.google.com/file/d/1cTJfJNUIKaw-GRLEmPATifdiYvjq94Os/view?usp=sharing)
 
 ## Repository layout
 

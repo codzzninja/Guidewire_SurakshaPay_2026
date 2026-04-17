@@ -8,11 +8,10 @@
 
 [View Pitch Deck](https://drive.google.com/file/d/1cTJfJNUIKaw-GRLEmPATifdiYvjq94Os/view?usp=sharing)
 
-> ⚠️ **STRIPE IN TEST MODE ONLY**
->
+> ⚠️ **STRIPE IN TEST MODE ONLY**  
 > This demo uses **Stripe in TEST MODE only**. Real card payments will not work.  
 >  
-> 💳 For testing, use card no as:  
+> **For testing, use card no as:**  
 > **4242 4242 4242 4242**  
 > - Any future expiry date  
 > - Any 3-digit CVC  

@@ -8,6 +8,16 @@
 
 [View Pitch Deck](https://drive.google.com/file/d/1cTJfJNUIKaw-GRLEmPATifdiYvjq94Os/view?usp=sharing)
 
+> ⚠️ **STRIPE IN TEST MODE ONLY**
+>
+> This demo uses **Stripe in TEST MODE only**. Real card payments will not work.  
+>  
+> 💳 For testing, use card no as:  
+> **4242 4242 4242 4242**  
+> - Any future expiry date  
+> - Any 3-digit CVC  
+> - Any ZIP/postal code
+
 ## Repository layout
 
 | Area | Path | Role |
@@ -41,13 +51,6 @@ pip install -r requirements.txt
 copy .env file from the drive link above to /backend/.env
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-
-### Celery (optional; matches production story)
-
-- Redis running locally (`REDIS_URL=redis://localhost:6379/0`).
-- Worker: `celery -A app.worker:celery_app worker --loglevel=info`
-- Beat: `celery -A app.worker:celery_app beat --loglevel=info`
-
 ### Frontend
 
 ```bash
@@ -56,13 +59,20 @@ npm install
 npm run dev
 ```
 
-Ensure the UI points at your API (see `frontend/src/lib/api.ts` for base URL / env).
-
 ### Docker Compose
 
 ```bash
 docker compose up --build
 ```
+
+### Celery (optional; matches production story)
+
+- Redis running locally (`REDIS_URL=redis://localhost:6379/0`).
+- Worker: `celery -A app.worker:celery_app worker --loglevel=info`
+- Beat: `celery -A app.worker:celery_app beat --loglevel=info`
+Ensure the UI points at your API (see `frontend/src/lib/api.ts` for base URL / env).
+
+
 
 Compose uses a **shared SQLite file** on a volume so **API + Celery** share one database (`DATABASE_URL=sqlite:////app/data/surakshapay.db`).
 

@@ -7,7 +7,7 @@
 ## Pitch Deck
 
 [View Pitch Deck](https://drive.google.com/file/d/1cTJfJNUIKaw-GRLEmPATifdiYvjq94Os/view?usp=sharing)
-
+---
 > ⚠️ **STRIPE IN TEST MODE ONLY**  
 > This demo uses **Stripe in TEST MODE only**. Real card payments will not work.  
 >  
@@ -16,7 +16,7 @@
 > - Any future expiry date  
 > - Any 3-digit CVC  
 > - Any ZIP/postal code
-
+---
 ## How to run (local)
 
 ### Backend

@@ -34,7 +34,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-copy .env file from https://drive.google.com/file/d/1XGe_95dv_Ms3fyvjDmd4fw4L5hJYMPxg/view?usp=sharing
+copy .env file from https://drive.google.com/file/d/1XGe_95dv_Ms3fyvjDmd4fw4L5hJYMPxg/view?usp=sharing to /backend/.env
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
